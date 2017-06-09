@@ -1,0 +1,353 @@
+#### 1、sharedprefence
+demo：记住账号密码系列：
+```
+/*
+* 流程就是通过context自带的方法去获取一个SharedPreferences，去调用他的edit方法，存入数据，最后调用apply（）方法保存
+* 如果你要清空这个文件就调用editor.clear();他会清空这个文件名里面的所有内容
+*/
+  SharedPreferences saveUserInfo = PreferenceManager.getDefaultSharedPreferences(context);//默认文件名是传入context的名字
+  SharedPreferences.Editor editor = saveUserInfo.edit();
+  editor.putString("account", account);
+  editor.putString("password", password);
+  editor.putBoolean("remberPassword", true);
+  editor.apply();//到这里就保存了信息
+
+
+```
+
+
+#### 2、file
+demo：file读写系列：
+```
+/*
+* 1、流程就是你通过openFileOutput传入文件名，通过write写进去byte流，如果文件存在看格式选择覆盖还是追加，如果不存在这个文件就新建文件并且写入
+* 2、写进去之后我们应该怎么获取文件所在地址呢，我们可以通过  File file = new File(getApplication().getFilesDir(), fileName);传入当时我们写进去的文件名字，这时候我们会发现文件的路径是data/0/user/包名/files/文件名，是不是跟我们预想到的会在data/data/包名/files/文件名有点差别，别紧张，其实这是因为android6.0新设计了一个权限，即根据用户user来规定你能看到什么，但是两个其实你引用地址是一样的，data/0/user/包名/files/文件名会被自动链到data/data/包名/files/文件名。
+*/
+      String fileContent = "书名是中华上下五千年，简介是：没有什么就随便写吧";
+      Long timeStamp = System.currentTimeMillis();
+      String fileName = timeStamp.toString();//用时间戳给文件命名（防止文件名重复）
+      FileOutputStream outputStream = null;
+            try {
+                    outputStream = openFileOutput(fileName, Context.MODE_WORLD_READABLE);//MODE_WORLD_READABLE全局可读其实谷歌已经不推荐了（安全性问题），不过如果你要用第三方的隐式Intent去打开，就必须是这个格式，不然会报没有权限的错误
+                    outputStream.write(fileContent.getBytes());//只能写入byte流
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    if (outputStream != null) {
+
+                        try {
+                            outputStream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                File file = new File(getApplication().getFilesDir(), fileName);
+                String fileAdress = file.getAbsolutePath());
+
+
+```
+
+```
+//存进去了就要取出来，因为文件是Context.MODE_WORLD_READABLE模式存进去的，所以我们可以读取
+File file = new File(fileAddress);//fileAddress文件地址
+                Intent intent = new Intent("android.intent.action.VIEW");
+                intent.addCategory("android.intent.category.DEFAULT");
+                Uri uri2 = Uri.fromFile(file);
+                intent.setDataAndType(uri2, "text/plain");
+                startActivity(intent);
+
+```
+小tips：因为谷歌对于共享越来越严格了，所以如果要共享文件，推荐用provider关于file方面。
+
+
+
+
+#### 3、数据库sqlite使用系列
+
+- 第一步，先根据你要几张表，建立几张表的契约类： 表名Table.java
+
+```
+
+/*
+* 为什么要实现BaseColumns接口暂时不清楚，先做个标记
+*然后之后有什么关于这个表的语句也放在这里，主要是为了统一管理，不然以后项目大了就乱了
+*/
+public final class BookTable implements BaseColumns {
+
+    public static final String TABLE_NAME = "Book";//表名称
+    public static final String COLUMN_NAME_BOOK_ID = "BookID";//书ID
+    public static final String COLUMN_NAME_BOOk_NAME = "BookName";//书名
+    public static final String COLUMN_NAME_DESCRIPTION = "Description";//书的描述
+    public static final String COLUMN_NAME_BOOK_ADDRESS = "BookAddress";//书的地址
+    public static final String COLUMN_NAME_BOOk_NAME_NEW1 = "BookNameNew1";//书的第二个名字
+    public static final String COLUMN_NAME_BOOk_NAME_NEW2 = "BookNameNew2";//书的第三个名字
+
+    /*
+    * 建表语句
+    * */
+
+    public static final String SQL_CREATE_BOOK =
+            "CREATE TABLE " + TABLE_NAME + " (" +
+                    COLUMN_NAME_BOOK_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    COLUMN_NAME_BOOk_NAME + " TEXT," +
+                    COLUMN_NAME_DESCRIPTION + " TEXT," +
+                    COLUMN_NAME_BOOk_NAME_NEW1 + " TEXT," +
+                    COLUMN_NAME_BOOk_NAME_NEW2 + " TEXT," +
+                    COLUMN_NAME_BOOK_ADDRESS + " TEXT)";
+
+    /*
+    * 删表语句
+    * */
+    public static final String SQL_DROP_BOOK = "DROP TABLE IF EXISTS " + TABLE_NAME;
+}
+
+```
+
+-  第二步，新建一个类继承SqliteOpenHelper
+
+
+```
+
+/*
+*继承SqliteOpenHelp,主要有onCreate（）第一次创建的时候回；onUpgrade（）数据库升级的时候回调，比如我现在数据库版本号是5，这时候我传进来一个版本号是6，就会执行升级数据库的回调，oldVersion是5，newVersion 是6；
+onDowngrade（）数据库降级的时候回调，比如我现在版本号是5，这时候我传进来一个版本号是4，就会执行降级的回调，oldVersion是5，newVersion 是4
+*需要注意的点：1、如果你在升级里插入字段或者插入表，第一步Table表名.java里就必须有对应的字段和表。
+*2、数据库不管升级或者降级都应该对其进行出错防护措施（一般是开启事务，在事务里进行升级或者降级，并捕捉错误，如果出错了就删掉现有的表，重新执行依次建表语句）
+*3、之所以动不动（升级或者降级失败）就删除现有的表，重新执行建表语句，是因为建表语句是这个应用版本的，能够适应这个版本的业务逻辑，数据库则是上个应用版本遗留下来的，这样重建虽然会导致数据丢失但是保证能够正常的运行app
+*4、数据库的升降级一般是伴随应用的升降级，一个小tips：在build里更改versionCode，只要当前的versionCode大于安装的，就会升级，谷歌不允许装一个versionCode小于当前安装上的。
+*5、db开启事务后，一定要执行 db.setTransactionSuccessful();否则结束事务就跟没执一样
+*/
+public class BookSystemOpenHelper extends SQLiteOpenHelper {
+
+    public BookSystemOpenHelper(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
+        super(context, name, factory, version);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL(UserTable.SQL_CREATE_USER);
+        db.execSQL(BookTable.SQL_CREATE_BOOK);
+    }
+
+
+    /**
+     * 数据库版本升级的时候回调
+     */
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        switch (oldVersion) {
+            case 1:
+                db.beginTransaction();
+                try {
+                    db.execSQL("ALTER TABLE Book ADD column BookNameNew1 text");
+                } catch (Exception e) {
+                    db.execSQL(BookTable.SQL_DROP_BOOK);
+                    db.execSQL(BookTable.SQL_CREATE_BOOK);
+
+
+                } finally {
+                    db.setTransactionSuccessful();
+                    db.endTransaction();
+                }
+                ;
+
+            case 2:
+                db.beginTransaction();
+                try {
+                    db.execSQL("ALTER TABLE Book ADD column BookNameNew2 text");
+                } catch (Exception e) {
+                    db.execSQL(BookTable.SQL_DROP_BOOK);
+                    db.execSQL(BookTable.SQL_CREATE_BOOK);
+
+
+                } finally {
+                    db.setTransactionSuccessful();
+                    db.endTransaction();
+                }
+                ;
+
+        }
+    }
+
+    /**
+     * 数据库降级的时候用
+     *
+     * @param db
+     * @param oldVersion
+     * @param newVersion
+     */
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+
+
+        switch (newVersion) {
+
+            case 1:
+                db.beginTransaction();
+                try {
+                    db.execSQL("CREATE TEMPORARY TABLE book_backup(BookID integer primary key autoincrement,BookName text,Description text,BookAddress text);");
+                    db.execSQL("INSERT INTO book_backup SELECT BookID,BookName,Description,BookAddress FROM Book;");
+                    db.execSQL(BookTable.SQL_DROP_BOOK);
+                    db.execSQL("CREATE TABLE Book(BookID integer primary key autoincrement,BookName text,Description text,BookAddress text);");
+                    db.execSQL("INSERT INTO Book SELECT BookID,BookName,Description,BookAddress FROM book_backup;");
+                    db.execSQL("DROP TABLE book_backup;");
+                    db.setTransactionSuccessful();
+                } finally {
+                    db.endTransaction();
+                }
+                break;
+
+
+            case 2:
+                db.beginTransaction();
+                try {
+                    db.execSQL("CREATE TEMPORARY TABLE book_backup(BookID integer primary key autoincrement,BookName text,Description text,BookAddress text,BookNameNew1 text);");
+                    db.execSQL("INSERT INTO book_backup SELECT BookID,BookName,Description,BookAddress,BookNameNew1 FROM Book;");
+                    db.execSQL(BookTable.SQL_DROP_BOOK);
+                    db.execSQL("CREATE TABLE Book(BookID integer primary key autoincrement,BookName text,Description text,BookAddress text,BookNameNew1 text);");
+                    db.execSQL("INSERT INTO Book SELECT BookID,BookName,Description,BookAddress,BookNameNew1 FROM book_backup;");
+                    db.execSQL("DROP TABLE book_backup;");
+                    db.setTransactionSuccessful();
+                } finally {
+                    db.endTransaction();
+                }
+                break;
+
+        }
+    }
+}
+
+
+
+```
+
+
+- 第三步，写一个数据库类，持有第二步的实例，然后给这个数据库类设置成单例模式，并在里面封装我们的业务逻辑（增删改查），到时候我们想在哪里操作数据库就去实例化这个类
+
+```
+public class BookSystemDB {
+    public static final String DB_NAME = "bookSystem";
+    public static int VERSION = 3;
+
+    private static BookSystemDB mBookSystemDB;
+    private static SQLiteDatabase mDb;
+
+
+    /**
+     * 将构造方法私有化
+     *
+     * @param context
+     */
+    private BookSystemDB(Context context) {
+        BookSystemOpenHelper bookSystemOpenHelper = new BookSystemOpenHelper(context, DB_NAME, null, VERSION);
+        mDb = bookSystemOpenHelper.getWritableDatabase();
+
+    }
+
+    /**
+     * @param context
+     * @return 返回一个BookSystemDB实例（单例）
+     */
+    public synchronized static BookSystemDB getInstance(Context context) {
+        if (mBookSystemDB == null) {
+            mBookSystemDB = new BookSystemDB(context);
+        }
+        return mBookSystemDB;
+    }
+
+    /**
+     * 保存用户的信息
+     * insert的返回值是插入的行数
+     * @param user
+     */
+    public long saveUserinfo(User user) {
+        long result = -2;
+        if (user != null) {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("UserAccount", user.getUserAccount());
+            contentValues.put("UserPassword", user.getUserPassword());
+            contentValues.put("UserName", user.getUserName());
+
+            result = mDb.insert("User", null, contentValues);
+
+        }
+        return result;
+    }
+
+    /**
+     * 根据登陆界面传过来的use信息，看数据库里是否匹配
+     * query的返回值是一个cursor，多个where的请看这个函数，同理如果是或者则用OR
+     * @param user
+     * @return 返回一个布尔值，true就是匹配
+     */
+    public boolean queryUser(User user) {
+        boolean queryResult = false;
+        if (user != null) {
+            Cursor cursor = mDb.query("User", null, "UserPassword=? AND UserAccount=?", new String[]{"123", "123"}, null, null, null);
+            if (cursor.getCount() > 0) {
+                queryResult = true;
+            }
+            cursor.close();
+        }
+
+        return queryResult;
+    }
+
+    /**
+     * 这个返回数据库里所有书籍的书名，用result承装，最后给ManagerBookAcytivity的listview填充数据用
+     *
+     * @return resul
+     */
+    public List<String> queryBookInfo() {
+        List<String> result = new ArrayList<String>();
+
+        Cursor cursor = mDb.query("Book", null, null, null, null, null, null);
+
+        if (cursor.getCount() > 0) {
+            if (cursor.moveToFirst()) {
+                do {
+                    String temp = cursor.getString(cursor.getColumnIndex("BookName"));
+                    result.add(temp);
+                } while (cursor.moveToNext());
+
+
+            }
+            cursor.close();
+        }
+        return result;
+    }
+
+    /**
+     * 根据书本详情页面传过来的bookID删除一本书
+     * 删除的返回值也是删除的行数
+     * @param bookID
+     */
+    public int deleteBook(int bookID) {
+        int result = mDb.delete("Book", "BookID=?", new String[]{bookID + ""});
+        return result;
+
+    }
+
+    /**
+     * 更新书本的信息
+     * 更新的返回值是更新的行数
+     * @param book
+     */
+    public int updateBookinfo(Book book) {
+        int result = 0;
+        if (book != null) {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("BookName", book.getBookName());
+            contentValues.put("Description", book.getDescription());
+            contentValues.put("BookAddress", book.getBookAddress());
+
+            result = mDb.update("Book", contentValues, "BookID=?", new String[]{book.getBookID() + ""});
+
+        }
+        return result;
+    }
+
+
+```
