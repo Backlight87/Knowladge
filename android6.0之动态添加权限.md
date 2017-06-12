@@ -1,6 +1,12 @@
 情景：Android 6.0在我们原有的AndroidManifest.xml声明权限的基础上，
 又新增了运行时权限动态检测，把权限分为危险权限和非危险权限，危险权限需要在运行时判断并授权：
 
+<!-- toc orderedList:0 depthFrom:1 depthTo:6 -->
+
+* [在Activity申请权限](#在activity申请权限)
+* [在Fragment中申请权限](#在fragment中申请权限)
+
+<!-- tocstop -->
 需要授权的：
 
 ```
