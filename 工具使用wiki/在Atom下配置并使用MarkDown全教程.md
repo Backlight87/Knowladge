@@ -1,16 +1,28 @@
 
-#### 原来是用有道云笔记进行的markdown文章的编写，但是如果有图片就很麻烦。于是决定转用atom编辑器来做书写工具，各种因为版本问题，网络问题搞了一天，一言难尽。。
-#### 教程背景：这篇教程是在可以翻墙的前提下，系统是win
+ 原来是用有道云笔记进行的markdown文章的编写，但是如果有图片就很麻烦。于是决定转用atom编辑器来做书写工具，各种因为版本问题，网络问题搞了一天，一言难尽。。
+<!-- toc orderedList:0 depthFrom:1 depthTo:6 -->
 
-### **一、Atom编辑器的安装**
+  * [教程背景](#教程背景)
+* [**Atom编辑器的安装**](#atom编辑器的安装)
+* [**markdown环境的配置**](#markdown环境的配置)
+  * [安装过程可能会出现的问题](#备注安装这个插件会出现蛮多的问题)
+  * [使用markdwon](#到这里就完成了整个markdown环境的配置了可以尽情的享受atom带来的编写快捷的感受同样是有几个步骤)
+  * [小tips-修改图片规格](#小tips)
+
+<!-- tocstop -->
+#### 教程背景
+
+这篇教程是在可以翻墙的前提下，系统是win
+
+### **Atom编辑器的安装**
 [Atom编辑器下载地址](https://atom.io/)
-#### 通过这个下载的他会自动默认装到C盘，一些设置默认下去就好。安装完成后整个界面大致是这个样子
+通过这个下载的他会自动默认装到C盘，一些设置默认下去就好。安装完成后整个界面大致是这个样子
 
 
 ![atom的标题-new](http://oi2e3199v.bkt.clouddn.com/c438ae2652ee1fc9652f0d97f893770b.png)
 
 
-### **二、markdown环境的配置**
+### **markdown环境的配置**
 1.  **安装qiniu-uploader插件**
   - 首先用快捷键ctrl+，唤出插件的管理界面
 
@@ -32,7 +44,7 @@
  2. 需要安装NodeJS
  3. 请把你的VPN开启全局模式<br>
  这样就可基本就能完成插件install了。
- 
+
 - 第二个：由于版本问题，你安装完他会显示如下所示的错误
 
 >“Uncaught EvalError: Refused to evaluate a string as JavaScript because 'unsafe-eval' is not an allowed source of script in the following Content Security Policy directive: "script-src 'self'".”  
@@ -64,3 +76,10 @@
 
 2. ctrl + shift + P 调出界面，输入 markdown preview toggle，即可实时预览（快捷键是ctrl + shift + M）
 ![实时预览](http://oi2e3199v.bkt.clouddn.com/812ff7c843df91bbeb0e987a2a850771.png)
+
+
+
+#### 小tips：
+
+对于markdowm一个避不开的问题就是：我们要如何改变图片的大小，很遗憾，markdown并没有这种语法。不过七牛云给我们提供了一个接口，我们用七牛云插件的时候可以在链接的后面添加参数来控制返回后的图片的规格。
+比如： http://oi2e3199v.bkt.clouddn.com/812ff7c843df91bbeb0e987a2a850771.png?imageView2/2/w/700/h/500   这个链接就是代表我们要七牛云返回一个宽最大700，高最大500的图片给我们，其他的接口参照[七牛云图片基本处理](https://developer.qiniu.com/dora/manual/1279/basic-processing-images-imageview2)
