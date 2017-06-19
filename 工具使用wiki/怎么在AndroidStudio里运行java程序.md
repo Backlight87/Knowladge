@@ -34,7 +34,7 @@
 
 
 但是有一个问题：
-我们运行结束不要这么module了怎么半？module右键并没有delete
+我们运行结束不要这么module了怎么办？module右键并没有delete
 
 解决方案：
 
