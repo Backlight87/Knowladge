@@ -21,8 +21,10 @@
 
 1) Android 4.4及以下： ARM Translation Installer v1.1
 2) Android 5.x： ARM_Translation_Lollipop
-3) Android 6.x： ARM_Translation_Marshmallow (网盘->工具)
+3) Android 6.x： ARM_Translation_Marshmallow (网盘->工具->压缩包名字参照左边不要改)
 
 将下载的zip包，拖进Genymotion模拟器窗口，按照提示安装
 
 安装成功后，重启Genymotion模拟器即可。
+
+备注：genymotion安装apk也是直接拖进去就okay，不过如果apk的名字是中文就安装不了。

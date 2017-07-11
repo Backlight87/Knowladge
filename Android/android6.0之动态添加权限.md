@@ -48,13 +48,12 @@ if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_S
  private void doNext(int requestCode, int[] grantResults) {
        if (requestCode == WRITE_EXTERNAL_STORAGE_REQUEST_CODE) {
            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-               // Permission Granted
+               // Permission Granted正常我们会在这里进行授权成功后的操作，比如我要获取相册的图片，一般就是在这里，如果放在前面的话就会出问题，因为请求权限的的操作是异步的，所以如果你申请权限，然后读取数据这样线性执行下来，就会出问题，我们在没有权限的情况下，每申请依次查看相册就会报一次（空指针，待定）以及会弹出一次请求权限的申请框。
            } else {
                // Permission Denied
            }
        }
    }
-
  ```
 
 
